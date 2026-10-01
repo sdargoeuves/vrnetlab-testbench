@@ -19,6 +19,34 @@ from .checks import check_node
 from .lab import lab_name, lab_nodes
 
 
+def topology_for(lab_arg: str, lab: str) -> str | None:
+    """The topology file of a lab: the argument itself, or the topology-*.clab.yml whose name matches."""
+    if lab_arg.endswith((".yml", ".yaml")):
+        return lab_arg
+    return next((str(t) for t in sorted(Path(".").glob("topology-*.clab.yml")) if lab_name(str(t)) == lab), None)
+
+
+def not_deployed(args: argparse.Namespace, lab: str) -> None:
+    """Offer to run the bench on it (deploy, check, destroy), else say how to deploy and destroy it."""
+    topology = topology_for(args.lab, lab)
+    print(f"Lab '{lab}' is not deployed: vrcheck only checks a running lab.")
+    if topology and sys.stdin.isatty():
+        answer = input("Deploy it, check it and destroy it once done (same as vrcheck bench)? [y/N] ")
+        if answer.strip().lower() in ("y", "yes"):
+            if args.node:
+                print(f"Note: the bench checks every node, -n {args.node} is ignored.")
+            bench_args = [topology, "--workers", str(args.workers), "--log-dir", str(args.log_dir)]
+            bench.main(bench_args + (["--logs-only"] if args.logs_only else []))
+    topology = topology or "<topology file>"
+    sys.exit(
+        "To do it yourself:\n"
+        f"  deploy:   containerlab deploy -t {topology}\n"
+        f"  check:    uv run vrcheck {args.lab}    (once the nodes are healthy in docker ps)\n"
+        f"  destroy:  containerlab destroy -c -t {topology}\n"
+        f"Or all in one go:  uv run vrcheck bench {topology}"
+    )
+
+
 def main() -> None:
     if sys.argv[1:2] == ["bench"]:
         bench.main(sys.argv[2:])
@@ -34,9 +62,12 @@ def main() -> None:
     args = parser.parse_args()
 
     lab = lab_name(args.lab)
-    nodes = [n for n in lab_nodes(lab) if not args.node or args.node in n.name]
+    all_nodes = lab_nodes(lab)
+    if not all_nodes:
+        not_deployed(args, lab)
+    nodes = [n for n in all_nodes if not args.node or args.node in n.name]
     if not nodes:
-        sys.exit(f"No containers found for lab '{lab}' (see: containerlab inspect --all)")
+        sys.exit(f"No node of lab '{lab}' has '{args.node}' in its name: {' '.join(n.name for n in all_nodes)}")
 
     print(f"Checking {len(nodes)} node(s) of lab {lab}...")
     with ThreadPoolExecutor(max_workers=args.workers) as pool:

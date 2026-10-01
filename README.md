@@ -108,6 +108,9 @@ uv run vrcheck vrt-exos -n x327  # only nodes whose name contains "x327"
 uv run vrcheck vrt-exos --logs-only
 ```
 
+If the lab isn't deployed, vrcheck offers to run the bench on it (deploy, check, destroy).
+Answer no, or run it from a script, and it prints the commands to deploy, check and destroy it yourself.
+
 For each node, vrcheck reads the expected result from the container itself, not from the node name:
 
 - passthrough expected: `CLAB_MGMT_PASSTHROUGH=true` on the container

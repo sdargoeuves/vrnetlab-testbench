@@ -229,7 +229,7 @@ def main(argv: list[str]) -> None:
         sys.exit("containerlab not found in PATH")
 
     bench = Bench(args)
-    bench.say(f"# vrcheck bench: {len(topologies)} topologies, logs in {bench.run_dir}")
+    bench.say(f"# vrcheck bench: {len(topologies)} topolog{'y' if len(topologies) == 1 else 'ies'}, logs in {bench.run_dir}")
     runs = []
     try:
         for topology in topologies:
