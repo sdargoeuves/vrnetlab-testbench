@@ -1,0 +1,22 @@
+[project]
+name = "vrnetlab-tests"
+version = "0.1.0"
+description = "Containerlab test matrix and checker for vrnetlab images"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+    "netmiko>=4.4",
+    # paramiko 4 dropped ssh-rsa (SHA-1) host keys, the only kind EXOS 32 offers
+    "paramiko<4",
+    "pyyaml>=6",
+]
+
+[project.scripts]
+vrcheck = "vrcheck.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["vrcheck"]

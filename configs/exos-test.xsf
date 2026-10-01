@@ -1,0 +1,4 @@
+# basic EXOS test
+configure snmp sysContact "netlab-test"
+create vlan test123 tag 123
+configure vlan test123 ipaddress 1.2.3.4/24

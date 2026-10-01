@@ -1,0 +1,82 @@
+# vrnetlab test matrix: Cisco ASAv
+# 5 nodes per version:
+#   *-base   no passthrough, no startup-config
+#   *-pt     passthrough,    no startup-config
+#   *-cfg    no passthrough, startup-config
+#   *-ptcfg  passthrough,    startup-config
+#   *-creds  no passthrough, no startup-config, custom password (node-level `credentials`)
+# Each version is its own ring (eth1 -> next node's eth2).
+#
+# Native kind: containerlab passes the node's credentials to vrnetlab as --username/--password
+# (default admin / CiscoAsa1!). vrnetlab uses them for the local user and the enable password.
+# Each ASAv VM uses 2 GB RAM.
+
+name: vrt-asav
+
+topology:
+  defaults:
+    kind: cisco_asav
+
+  groups:
+    base:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "false"
+    pt:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "true"
+    cfg:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "false"
+      binds:
+        - configs/asav-test.cfg:/config/startup-config.cfg
+    ptcfg:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "true"
+      binds:
+        - configs/asav-test.cfg:/config/startup-config.cfg
+    creds:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "false"
+      credentials:
+        username: theadmin
+        password: "New-Passw0rd"
+
+  nodes:
+    # --- 9.18.1 ---
+    a918-base:  { group: base,  image: &image1 vrnetlab/cisco_asav:9-18-1 }
+    a918-pt:    { group: pt,    image: *image1 }
+    a918-cfg:   { group: cfg,   image: *image1 }
+    a918-ptcfg: { group: ptcfg, image: *image1 }
+    a918-creds: { group: creds, image: *image1 }
+    # --- 9.24.1 ---
+    a924-base:  { group: base,  image: &image2 vrnetlab/cisco_asav:9-24-1 }
+    a924-pt:    { group: pt,    image: *image2 }
+    a924-cfg:   { group: cfg,   image: *image2 }
+    a924-ptcfg: { group: ptcfg, image: *image2 }
+    a924-creds: { group: creds, image: *image2 }
+    # # --- 9.9.2 (uncomment to test, plus its links below) ---
+    # a99-base:  { group: base,  image: &image3 vrnetlab/cisco_asav:9-9-2 }
+    # a99-pt:    { group: pt,    image: *image3 }
+    # a99-cfg:   { group: cfg,   image: *image3 }
+    # a99-ptcfg: { group: ptcfg, image: *image3 }
+    # a99-creds: { group: creds, image: *image3 }
+
+  links:
+    # --- 9.18.1 ring ---
+    - endpoints: ["a918-base:eth1",  "a918-pt:eth2"]
+    - endpoints: ["a918-pt:eth1",    "a918-cfg:eth2"]
+    - endpoints: ["a918-cfg:eth1",   "a918-ptcfg:eth2"]
+    - endpoints: ["a918-ptcfg:eth1", "a918-creds:eth2"]
+    - endpoints: ["a918-creds:eth1", "a918-base:eth2"]
+    # --- 9.24.1 ring ---
+    - endpoints: ["a924-base:eth1",  "a924-pt:eth2"]
+    - endpoints: ["a924-pt:eth1",    "a924-cfg:eth2"]
+    - endpoints: ["a924-cfg:eth1",   "a924-ptcfg:eth2"]
+    - endpoints: ["a924-ptcfg:eth1", "a924-creds:eth2"]
+    - endpoints: ["a924-creds:eth1", "a924-base:eth2"]
+    # # --- 9.9.2 ring ---
+    # - endpoints: ["a99-base:eth1",  "a99-pt:eth2"]
+    # - endpoints: ["a99-pt:eth1",    "a99-cfg:eth2"]
+    # - endpoints: ["a99-cfg:eth1",   "a99-ptcfg:eth2"]
+    # - endpoints: ["a99-ptcfg:eth1", "a99-creds:eth2"]
+    # - endpoints: ["a99-creds:eth1", "a99-base:eth2"]

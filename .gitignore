@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+# containerlab lab directories
+clab-*/
+*.bak
+# vrcheck results
+logs/

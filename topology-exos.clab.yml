@@ -1,0 +1,68 @@
+# vrnetlab test matrix: Extreme EXOS
+# 4 nodes per version:
+#   *-base   no passthrough, no startup-config
+#   *-pt     passthrough,    no startup-config
+#   *-cfg    no passthrough, startup-config
+#   *-ptcfg  passthrough,    startup-config
+# Each version is its own 4-node ring (eth1 -> next node's eth2).
+# Comment out a version (nodes + links) to skip it.
+
+name: vrt-exos
+
+topology:
+  defaults:
+    kind: linux # no native EXOS kind in containerlab (same as netlab)
+    env:
+      QEMU_CPU: core2duo # needed for EXOS 32.x on the AMD host
+
+  groups:
+    base:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "false"
+    pt:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "true"
+    cfg:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "false"
+      binds:
+        - configs/exos-test.xsf:/config/startup-config.xsf
+    ptcfg:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "true"
+      binds:
+        - configs/exos-test.xsf:/config/startup-config.xsf
+
+  nodes:
+    # --- 32.6.3.126 ---
+    x326-base:  { group: base,  image: &image1 vrnetlab/extreme_exos:32.6.3.126 }
+    x326-pt:    { group: pt,    image: *image1 }
+    x326-cfg:   { group: cfg,   image: *image1 }
+    x326-ptcfg: { group: ptcfg, image: *image1 }
+    # --- 32.7.2.19 ---
+    x327-base:  { group: base,  image: &image2 vrnetlab/extreme_exos:32.7.2.19 }
+    x327-pt:    { group: pt,    image: *image2 }
+    x327-cfg:   { group: cfg,   image: *image2 }
+    x327-ptcfg: { group: ptcfg, image: *image2 }
+    # --- 33.6.1.14 ---
+    x336-base:  { group: base,  image: &image3 vrnetlab/extreme_exos:33.6.1.14 }
+    x336-pt:    { group: pt,    image: *image3 }
+    x336-cfg:   { group: cfg,   image: *image3 }
+    x336-ptcfg: { group: ptcfg, image: *image3 }
+
+  links:
+    # --- 32.6.3.126 ring ---
+    - endpoints: ["x326-base:eth1",  "x326-pt:eth2"]
+    - endpoints: ["x326-pt:eth1",    "x326-cfg:eth2"]
+    - endpoints: ["x326-cfg:eth1",   "x326-ptcfg:eth2"]
+    - endpoints: ["x326-ptcfg:eth1", "x326-base:eth2"]
+    # --- 32.7.2.19 ring ---
+    - endpoints: ["x327-base:eth1",  "x327-pt:eth2"]
+    - endpoints: ["x327-pt:eth1",    "x327-cfg:eth2"]
+    - endpoints: ["x327-cfg:eth1",   "x327-ptcfg:eth2"]
+    - endpoints: ["x327-ptcfg:eth1", "x327-base:eth2"]
+    # --- 33.6.1.14 ring ---
+    - endpoints: ["x336-base:eth1",  "x336-pt:eth2"]
+    - endpoints: ["x336-pt:eth1",    "x336-cfg:eth2"]
+    - endpoints: ["x336-cfg:eth1",   "x336-ptcfg:eth2"]
+    - endpoints: ["x336-ptcfg:eth1", "x336-base:eth2"]

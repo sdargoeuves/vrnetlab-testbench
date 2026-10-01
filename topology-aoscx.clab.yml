@@ -1,0 +1,48 @@
+# vrnetlab test matrix: Aruba AOS-CX
+# 4 nodes per version:
+#   *-base   no passthrough, no startup-config
+#   *-pt     passthrough,    no startup-config
+#   *-cfg    no passthrough, startup-config
+#   *-ptcfg  passthrough,    startup-config
+# Each version is its own 4-node ring (eth1 -> next node's eth2).
+#
+# Native kind: containerlab sets USERNAME/PASSWORD to admin/admin.
+# The startup-config is bind-mounted, like on the EXOS/VOSS tests. The
+# native alternative is `startup-config: configs/aoscx-test.cfg` on the node.
+
+name: vrt-aoscx
+
+topology:
+  defaults:
+    kind: aruba_aoscx
+
+  groups:
+    base:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "false"
+    pt:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "true"
+    cfg:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "false"
+      binds:
+        - configs/aoscx-test.cfg:/config/startup-config.cfg
+    ptcfg:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "true"
+      binds:
+        - configs/aoscx-test.cfg:/config/startup-config.cfg
+
+  nodes:
+    # --- 10.16.1060 ---
+    a1016-base:  { group: base,  image: vrnetlab/aruba_arubaos-cx:10_16_1060 }
+    a1016-pt:    { group: pt,    image: vrnetlab/aruba_arubaos-cx:10_16_1060 }
+    a1016-cfg:   { group: cfg,   image: vrnetlab/aruba_arubaos-cx:10_16_1060 }
+    a1016-ptcfg: { group: ptcfg, image: vrnetlab/aruba_arubaos-cx:10_16_1060 }
+
+  links:
+    - endpoints: ["a1016-base:eth1",  "a1016-pt:eth2"]
+    - endpoints: ["a1016-pt:eth1",    "a1016-cfg:eth2"]
+    - endpoints: ["a1016-cfg:eth1",   "a1016-ptcfg:eth2"]
+    - endpoints: ["a1016-ptcfg:eth1", "a1016-base:eth2"]

@@ -1,0 +1,58 @@
+# vrnetlab test matrix: Juniper vSRX
+# 5 nodes per version:
+#   *-base   no passthrough, no startup-config
+#   *-pt     passthrough,    no startup-config
+#   *-cfg    no passthrough, startup-config
+#   *-ptcfg  passthrough,    startup-config
+#   *-creds  no passthrough, no startup-config, custom password (node-level `credentials`)
+# Each version is its own ring (eth1 -> next node's eth2).
+#
+# Native kind: containerlab passes the node's credentials to vrnetlab as --username/--password
+# (default admin / admin@123). vrnetlab only uses the password; the user stays "admin".
+# The custom password needs the vsrx_user_password fix in the image (init.conf with {CRYPT_PSWD}).
+# Each vSRX VM uses 4 GB RAM and 2 vCPUs.
+
+name: vrt-vsrx
+
+topology:
+  defaults:
+    kind: juniper_vsrx
+
+  groups:
+    base:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "false"
+    pt:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "true"
+    cfg:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "false"
+      binds:
+        - configs/vsrx-test.cfg:/config/startup-config.cfg
+    ptcfg:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "true"
+      binds:
+        - configs/vsrx-test.cfg:/config/startup-config.cfg
+    creds:
+      env:
+        CLAB_MGMT_PASSTHROUGH: "false"
+      credentials:
+        username: admin
+        password: "New-Passw0rd"
+
+  nodes:
+    # --- 22.3R1.11 ---
+    s223-base:  { group: base,  image: &image1 vrnetlab/juniper_vsrx:22.3R1.11 }
+    s223-pt:    { group: pt,    image: *image1 }
+    s223-cfg:   { group: cfg,   image: *image1 }
+    s223-ptcfg: { group: ptcfg, image: *image1 }
+    s223-creds: { group: creds, image: *image1 }
+
+  links:
+    - endpoints: ["s223-base:eth1",  "s223-pt:eth2"]
+    - endpoints: ["s223-pt:eth1",    "s223-cfg:eth2"]
+    - endpoints: ["s223-cfg:eth1",   "s223-ptcfg:eth2"]
+    - endpoints: ["s223-ptcfg:eth1", "s223-creds:eth2"]
+    - endpoints: ["s223-creds:eth1", "s223-base:eth2"]
